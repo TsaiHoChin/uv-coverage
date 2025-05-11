@@ -1,0 +1,74 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UV Coverage Viewer</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #111; color: white; }
+        h1 { font-size: 24px; }
+        #plot { width: 100%; height: 90vh; }
+        select { font-size: 14px; padding: 5px; }
+    </style>
+</head>
+<body>
+    <h1>UV Coverage Plot – TAOS II Array</h1>
+    <label for="starSelect">Select Target Star:</label>
+    <select id="starSelect" onchange="loadUVData(this.value)">
+        <option value="vega">Vega (α Lyrae)</option>
+        <!-- You can extend this with other targets -->
+    </select>
+
+    <div id="plot"></div>
+
+    <script>
+        async function loadUVData(star) {
+            let response = await fetch(star + "_data.json");
+            let data = await response.json();
+            let colors = { "A-B": "red", "B-C": "green", "A-C": "blue" };
+            let traces = [];
+
+            Object.keys(data).forEach(baseline => {
+                let u = data[baseline].u;
+                let v = data[baseline].v;
+
+                traces.push({
+                    x: u,
+                    y: v,
+                    mode: 'markers',
+                    marker: { size: 3 },
+                    name: baseline,
+                    type: 'scatter',
+                    marker: { color: colors[baseline] || 'white' }
+                });
+
+                // symmetric point (-u, -v)
+                traces.push({
+                    x: u.map(val => -val),
+                    y: v.map(val => -val),
+                    mode: 'markers',
+                    marker: { size: 3, color: colors[baseline] || 'white' },
+                    name: '-' + baseline,
+                    type: 'scatter',
+                    showlegend: false
+                });
+            });
+
+            let layout = {
+                title: `UV Coverage for ${star.charAt(0).toUpperCase() + star.slice(1)}`,
+                xaxis: { title: 'U (wavelengths)', zeroline: true },
+                yaxis: { title: 'V (wavelengths)', zeroline: true },
+                paper_bgcolor: '#111',
+                plot_bgcolor: '#111',
+                font: { color: 'white' },
+                showlegend: true
+            };
+
+            Plotly.newPlot('plot', traces, layout);
+        }
+
+        loadUVData("vega");
+    </script>
+</body>
+</html>
